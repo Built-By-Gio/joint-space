@@ -1,0 +1,566 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Joint Space</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=IBM+Plex+Sans:wght@400;500&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: one narrow column, one step per screen: label, heading, one or two sentences, one interactive, one task, Back/Next. */
+:root{
+  --paper:#F1F1EE; --ink:#0C0C0C; --graphite:#5D5D58; --line:#BDBDB7; --hair:#DCDCD7; --err:#B3261E; --ok:#1F6B3A;
+  --display:"Outfit",ui-sans-serif,system-ui,sans-serif;
+  --body:"IBM Plex Sans",ui-sans-serif,system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--paper:#0F0F0E;--ink:#ECECE7;--graphite:#A2A29B;--line:#45453F;--hair:#262624;--err:#FF7A6B;--ok:#7BD69A;color-scheme:dark}}
+:root[data-theme="dark"]{--paper:#0F0F0E;--ink:#ECECE7;--graphite:#A2A29B;--line:#45453F;--hair:#262624;--err:#FF7A6B;--ok:#7BD69A;color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--paper);color:var(--ink);font:17px/1.6 var(--body);padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.course{max-width:760px;margin:0 auto;padding-block:20px 40px;display:flex;flex-direction:column;gap:18px}
+.mono{font-family:var(--mono);font-size:12px;letter-spacing:.07em;text-transform:uppercase}
+button{font:inherit;color:inherit;background:none;border:1px solid var(--ink);border-radius:0;cursor:pointer;padding:10px 18px}
+button:hover{background:var(--ink);color:var(--paper)}
+:focus-visible{outline:2px solid var(--ink);outline-offset:3px}
+.top{display:flex;align-items:center;gap:10px}
+.top b{font:800 18px var(--display)}
+.top .mono{margin-left:auto;color:var(--graphite)}
+.bar{display:flex;gap:3px}
+.bar i{flex:1;height:4px;background:var(--hair)}
+.bar i.done{background:var(--ink)}
+.bar i.here{background:var(--graphite)}
+h1{font:800 clamp(30px,5.4vw,46px)/1.05 var(--display);letter-spacing:-.02em;margin:0;text-wrap:balance}
+.say{margin:0;max-width:60ch;font-size:18px}
+.say code,.formula{font-family:var(--mono);font-size:15px}
+.formula{display:block;background:var(--hair);padding:10px 14px;white-space:pre;overflow-x:auto;margin-top:10px}
+.stagebox{position:relative;border:1px solid var(--ink)}
+#sim{display:block;width:100%;aspect-ratio:4/3;max-height:460px;touch-action:none;cursor:grab}
+#sim:active{cursor:grabbing}
+#rig{display:block;width:100%;max-height:440px;color:var(--ink)}
+.hint{position:absolute;right:10px;bottom:8px;color:var(--graphite);pointer-events:none}
+.task{display:flex;align-items:center;gap:12px;border-left:3px solid var(--ink);padding:6px 0 6px 12px;min-height:44px}
+.task .mono{flex:none}
+.task p{margin:0;flex:1}
+.task.ok{border-color:var(--ok)}
+.task.ok .mono{color:var(--ok)}
+.task button{padding:6px 12px}
+.opts{display:flex;flex-direction:column;gap:8px}
+.opts button{text-align:left;border-color:var(--line);padding:12px 16px}
+.opts button.right{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+.opts button.wrong{border-color:var(--err);color:var(--err);text-decoration:line-through}
+.why{margin:0;color:var(--graphite)}
+.langs{display:flex;flex-wrap:wrap}
+.langs button{padding:6px 10px;font-size:14px;border-color:var(--line)}
+.langs button[aria-pressed="true"]{background:var(--ink);color:var(--paper);border-color:var(--ink)}
+pre{margin:0;border:1px solid var(--ink);padding:14px;overflow:auto;font:13px/1.55 var(--mono);max-height:440px}
+.nav{display:flex;justify-content:space-between;gap:12px;margin-top:6px}
+.nav .next{background:var(--ink);color:var(--paper)}
+.nav .next.skip{background:none;color:var(--graphite);border-color:var(--line)}
+.recap{margin:0;padding-left:20px}
+.recap li{margin:4px 0}
+footer{color:var(--graphite);font-size:13px;border-top:1px solid var(--hair);padding-top:14px;display:flex;flex-wrap:wrap;gap:10px;justify-content:space-between;align-items:center}
+footer p{margin:0;max-width:62ch}
+footer button{font-size:13px;padding:6px 10px;border-color:var(--line)}
+</style>
+
+<div class="course">
+  <div class="top">
+    <svg id="logo" width="26" height="26" viewBox="0 0 26 26" aria-hidden="true"><ellipse cx="13" cy="13" rx="12" ry="5" transform="rotate(-30 13 13)" fill="none" stroke="currentColor"/><path d="M7 9l6-3 6 3v8l-6 3-6-3zM7 9l6 3 6-3M13 12v8" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>
+    <b>Joint Space</b>
+    <span class="mono" id="where"></span>
+  </div>
+  <div class="bar" id="bar" aria-hidden="true"></div>
+  <main id="step" aria-live="polite" style="display:flex;flex-direction:column;gap:18px"></main>
+  <div class="nav"><button id="back">← Back</button><button id="next" class="next">Next →</button></div>
+  <footer><p>Uses Vanta's real leg: coxa 68, femur 76.7, tibia 101 mm. Your place in the course is saved only in this browser. Fonts come from Google Fonts and the animation library from cdnjs.</p><button id="wipe">Start over</button></footer>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/animejs/3.2.2/anime.min.js"></script>
+<script>
+const $=s=>document.querySelector(s),R=Math.PI/180,deg=r=>Math.round(r/R)+'°';
+const reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
+const store={get(k,d){try{const v=JSON.parse(localStorage.getItem(k));return v??d}catch{return d}},set(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch{}}};
+
+/* ---------- Vanta + math (the same math the code teaches) ---------- */
+const C=68,F=76.7,T=101; // vanta_one_leg_s3.ino
+const MOUNTS=[[96.2,-63.4,-33.4],[5.3,-85.1,-86.5],[-88.8,-70.8,-141.4],[-96.2,63.4,146.6],[-5.3,85.1,93.5],[88.8,70.8,38.6]].map(([x,y,a])=>[x,y,a*R]); // hexapod.urdf
+const mountR=Math.max(...MOUNTS.map(([x,y])=>Math.hypot(x,y))),NEUT=C+.55*(F+T),LEGN=['RF','RM','RR','LR','LM','LF'];
+const rot=(x,y,a)=>[x*Math.cos(a)-y*Math.sin(a),x*Math.sin(a)+y*Math.cos(a)];
+function ik2(x,z,up=true){const d=Math.hypot(x,z),ok=d<=F+T&&d>=Math.abs(F-T),c2=Math.max(-1,Math.min(1,(d*d-F*F-T*T)/(2*F*T))),t2=Math.acos(c2)*(up?-1:1);
+  return {t1:Math.atan2(z,x)-Math.atan2(T*Math.sin(t2),F+T*Math.cos(t2)),t2,ok,d}}
+function legIK(x,y,z){const r=Math.hypot(x,y)-C,s=ik2(r,z);return {t1:Math.atan2(y,x),t2:s.t1,t3:s.t2,ok:s.ok}}
+function footOffset(p,stride,lift){if(p<.5){const t=p/.5;return [-stride/2+stride*t,lift*Math.sin(Math.PI*t)]}const t=(p-.5)/.5;return [stride/2-stride*t,0]}
+const legPhase=(i,c)=>(c+(i%2?.5:0))%1;
+const neutralFeet=()=>MOUNTS.map(([mx,my,ma])=>[mx+NEUT*Math.cos(ma),my+NEUT*Math.sin(ma)]);
+const knee=(t1)=>[F*Math.cos(t1),F*Math.sin(t1)],foot=(t1,t2)=>[F*Math.cos(t1)+T*Math.cos(t1+t2),F*Math.sin(t1)+T*Math.sin(t1+t2)];
+
+/* ---------- canvas helpers ---------- */
+let cv,ctx,W,H,K,V={ox:0,oy:0,s:1};
+const tok=n=>getComputedStyle(document.documentElement).getPropertyValue(n).trim();
+const S=(x,y)=>[V.ox+x*V.s,V.oy-y*V.s];
+function L(a,b,c,w=1,d){ctx.beginPath();ctx.setLineDash(d||[]);ctx.strokeStyle=c;ctx.lineWidth=w;ctx.lineCap='round';ctx.moveTo(...S(...a));ctx.lineTo(...S(...b));ctx.stroke();ctx.setLineDash([])}
+function O(p,r,fill,stroke,w=1.5,d){const[x,y]=S(...p);ctx.beginPath();ctx.setLineDash(d||[]);ctx.arc(x,y,r,0,7);if(fill){ctx.fillStyle=fill;ctx.fill()}if(stroke){ctx.strokeStyle=stroke;ctx.lineWidth=w;ctx.stroke()}ctx.setLineDash([])}
+function ring(p,mm){O(p,mm*V.s,null,K.line,1,[3,5])}
+function Tx(s,p,c=K.gr,al='left',dx=0,dy=0){const[x,y]=S(...p);ctx.fillStyle=c;ctx.font='500 12px "IBM Plex Mono",ui-monospace,monospace';ctx.textAlign=al;ctx.fillText(s,x+dx,y+dy)}
+function corner(lines){ctx.font='500 13px "IBM Plex Mono",ui-monospace,monospace';ctx.textAlign='left';lines.forEach((s,i)=>{ctx.fillStyle=i?K.gr:K.ink;ctx.fillText(s,12,22+i*18)})}
+const link=(a,b,c=K.ink)=>L(a,b,c,7);
+const joint=p=>O(p,6,K.paper,K.ink,2);
+const handle=p=>{O(p,13,null,K.line,1);O(p,7,K.ink)};
+function goal(p,hit){O(p,11,hit?K.ok:null,hit?K.ok:K.ink,1.5,hit?null:[3,3]);if(!hit){const[x,y]=S(...p);ctx.strokeStyle=K.ink;ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x-5,y);ctx.lineTo(x+5,y);ctx.moveTo(x,y-5);ctx.lineTo(x,y+5);ctx.stroke()}}
+const near=(a,b,mm)=>Math.hypot(a[0]-b[0],a[1]-b[1])<=mm;
+const centered=(reach,fx=.5,fy=.5,k=.44)=>{V.s=Math.min(W,H)*k/reach;V.ox=W*fx;V.oy=H*fy};
+function twoLink(t1,t2,c=K.ink){const k=knee(t1),f=foot(t1,t2);link([0,0],k,c);link(k,f,c);joint([0,0]);joint(k);return f}
+
+/* ---------- code samples (Vanta numbers baked in) ---------- */
+const LANGS=[['python','Python'],['js','JavaScript'],['cpp','C++ / Arduino'],['cs','C#'],['rust','Rust'],['go','Go']];
+let lang=store.get('js-lang','python');
+const CODE={
+ik:{
+python:`import math
+
+FEMUR, TIBIA = 76.7, 101.0  # mm, Vanta
+
+def ik(x, z, elbow_up=True):
+    """Foot (x, z) -> joint angles (radians), or None if out of reach."""
+    d = math.hypot(x, z)
+    if d > FEMUR + TIBIA or d < abs(FEMUR - TIBIA):
+        return None
+    c2 = (d * d - FEMUR**2 - TIBIA**2) / (2 * FEMUR * TIBIA)
+    t2 = math.acos(c2) * (-1 if elbow_up else 1)
+    t1 = math.atan2(z, x) - math.atan2(TIBIA * math.sin(t2), FEMUR + TIBIA * math.cos(t2))
+    return t1, t2`,
+js:`const FEMUR = 76.7, TIBIA = 101.0; // mm, Vanta
+
+// Foot (x, z) -> joint angles (radians), or null if out of reach
+function ik(x, z, elbowUp = true) {
+  const d = Math.hypot(x, z);
+  if (d > FEMUR + TIBIA || d < Math.abs(FEMUR - TIBIA)) return null;
+  const c2 = (d * d - FEMUR ** 2 - TIBIA ** 2) / (2 * FEMUR * TIBIA);
+  const t2 = Math.acos(c2) * (elbowUp ? -1 : 1);
+  const t1 = Math.atan2(z, x) - Math.atan2(TIBIA * Math.sin(t2), FEMUR + TIBIA * Math.cos(t2));
+  return { t1, t2 };
+}`,
+cpp:`#include <math.h>
+const float FEMUR = 76.7, TIBIA = 101.0; // mm, Vanta
+
+// Foot (x, z) -> joint angles (radians). Returns false if out of reach.
+bool ik(float x, float z, float &t1, float &t2, bool elbowUp = true) {
+  float d = hypot(x, z);
+  if (d > FEMUR + TIBIA || d < fabs(FEMUR - TIBIA)) return false;
+  float c2 = (d * d - FEMUR * FEMUR - TIBIA * TIBIA) / (2 * FEMUR * TIBIA);
+  t2 = acos(c2) * (elbowUp ? -1 : 1);
+  t1 = atan2(z, x) - atan2(TIBIA * sin(t2), FEMUR + TIBIA * cos(t2));
+  return true;
+}`,
+cs:`using System;
+
+static partial class Leg {
+    const double Femur = 76.7, Tibia = 101.0; // mm, Vanta
+
+    // Foot (x, z) -> joint angles (radians), or null if out of reach
+    public static (double t1, double t2)? Ik(double x, double z, bool elbowUp = true) {
+        double d = Math.Sqrt(x * x + z * z);
+        if (d > Femur + Tibia || d < Math.Abs(Femur - Tibia)) return null;
+        double c2 = (d * d - Femur * Femur - Tibia * Tibia) / (2 * Femur * Tibia);
+        double t2 = Math.Acos(c2) * (elbowUp ? -1 : 1);
+        double t1 = Math.Atan2(z, x) - Math.Atan2(Tibia * Math.Sin(t2), Femur + Tibia * Math.Cos(t2));
+        return (t1, t2);
+    }
+}`,
+rust:`const FEMUR: f64 = 76.7; // mm, Vanta
+const TIBIA: f64 = 101.0;
+
+/// Foot (x, z) -> joint angles (radians), or None if out of reach
+fn ik(x: f64, z: f64, elbow_up: bool) -> Option<(f64, f64)> {
+    let d = x.hypot(z);
+    if d > FEMUR + TIBIA || d < (FEMUR - TIBIA).abs() { return None; }
+    let c2 = (d * d - FEMUR * FEMUR - TIBIA * TIBIA) / (2.0 * FEMUR * TIBIA);
+    let t2 = c2.acos() * if elbow_up { -1.0 } else { 1.0 };
+    let t1 = z.atan2(x) - (TIBIA * t2.sin()).atan2(FEMUR + TIBIA * t2.cos());
+    Some((t1, t2))
+}`,
+go:`package leg
+
+import "math"
+
+const Femur, Tibia = 76.7, 101.0 // mm, Vanta
+
+// IK: foot (x, z) -> joint angles (radians). ok is false if out of reach.
+func IK(x, z float64, elbowUp bool) (t1, t2 float64, ok bool) {
+	d := math.Hypot(x, z)
+	if d > Femur+Tibia || d < math.Abs(Femur-Tibia) {
+		return 0, 0, false
+	}
+	c2 := (d*d - Femur*Femur - Tibia*Tibia) / (2 * Femur * Tibia)
+	t2 = math.Acos(c2)
+	if elbowUp {
+		t2 = -t2
+	}
+	t1 = math.Atan2(z, x) - math.Atan2(Tibia*math.Sin(t2), Femur+Tibia*math.Cos(t2))
+	return t1, t2, true
+}`},
+leg:{
+python:`COXA = 68.0  # mm, Vanta. Goes below ik().
+
+def leg_ik(x, y, z):
+    """Foot (x, y, z) in the leg's frame -> (coxa, femur, tibia) radians."""
+    r = math.hypot(x, y) - COXA        # femur joint sits COXA mm out
+    s = ik(r, z)
+    return s and (math.atan2(y, x), *s)`,
+js:`const COXA = 68.0; // mm, Vanta. Goes below ik().
+
+// Foot (x, y, z) in the leg's frame -> three joint angles (radians)
+function legIK(x, y, z) {
+  const r = Math.hypot(x, y) - COXA;   // femur joint sits COXA mm out
+  const s = ik(r, z);
+  return s && { coxa: Math.atan2(y, x), femur: s.t1, tibia: s.t2 };
+}`,
+cpp:`const float COXA = 68.0; // mm, Vanta. Goes below ik().
+
+// Foot (x, y, z) in the leg's frame -> three joint angles (radians)
+bool legIK(float x, float y, float z, float &coxa, float &femur, float &tibia) {
+  coxa = atan2(y, x);
+  float r = hypot(x, y) - COXA;   // femur joint sits COXA mm out
+  return ik(r, z, femur, tibia);
+}`,
+cs:`static partial class Leg {
+    const double Coxa = 68.0; // mm, Vanta
+
+    // Foot (x, y, z) in the leg's frame -> three joint angles (radians)
+    public static (double coxa, double femur, double tibia)? LegIk(double x, double y, double z) {
+        double r = Math.Sqrt(x * x + y * y) - Coxa;   // femur joint sits Coxa mm out
+        if (Ik(r, z) is not { } s) return null;
+        return (Math.Atan2(y, x), s.t1, s.t2);
+    }
+}`,
+rust:`const COXA: f64 = 68.0; // mm, Vanta. Goes below ik().
+
+/// Foot (x, y, z) in the leg's frame -> (coxa, femur, tibia) radians
+fn leg_ik(x: f64, y: f64, z: f64) -> Option<(f64, f64, f64)> {
+    let r = x.hypot(y) - COXA; // femur joint sits COXA mm out
+    let (femur, tibia) = ik(r, z, true)?;
+    Some((y.atan2(x), femur, tibia))
+}`,
+go:`const Coxa = 68.0 // mm, Vanta. Same package as IK().
+
+// LegIK: foot (x, y, z) in the leg's frame -> three joint angles (radians)
+func LegIK(x, y, z float64) (coxa, femur, tibia float64, ok bool) {
+	r := math.Hypot(x, y) - Coxa // femur joint sits Coxa mm out
+	femur, tibia, ok = IK(r, z, true)
+	return math.Atan2(y, x), femur, tibia, ok
+}`},
+gait:{
+python:`def foot_offset(phase, stride=40.0, lift=25.0):
+    """Phase 0..1 -> (dx, dz) added to the foot's resting spot."""
+    if phase < 0.5:                      # swing: lift and reach forward
+        t = phase / 0.5
+        return -stride/2 + stride*t, lift * math.sin(math.pi * t)
+    t = (phase - 0.5) / 0.5              # stance: push back along the ground
+    return stride/2 - stride*t, 0.0
+
+def leg_phase(leg, clock):
+    """Legs 0, 2, 4 (RF, RR, LM) move together; 1, 3, 5 run half a cycle behind."""
+    return (clock + (0 if leg % 2 == 0 else 0.5)) % 1`,
+js:`// Phase 0..1 -> [dx, dz] added to the foot's resting spot
+function footOffset(phase, stride = 40, lift = 25) {
+  if (phase < 0.5) {                  // swing: lift and reach forward
+    const t = phase / 0.5;
+    return [-stride/2 + stride*t, lift * Math.sin(Math.PI * t)];
+  }
+  const t = (phase - 0.5) / 0.5;      // stance: push back along the ground
+  return [stride/2 - stride*t, 0];
+}
+
+// Legs 0, 2, 4 (RF, RR, LM) move together; 1, 3, 5 run half a cycle behind
+const legPhase = (leg, clock) => (clock + (leg % 2 ? 0.5 : 0)) % 1;`,
+cpp:`// Phase 0..1 -> dx, dz added to the foot's resting spot
+void footOffset(float phase, float &dx, float &dz, float stride = 40, float lift = 25) {
+  if (phase < 0.5) {                  // swing: lift and reach forward
+    float t = phase / 0.5;
+    dx = -stride / 2 + stride * t; dz = lift * sin(M_PI * t);
+  } else {                            // stance: push back along the ground
+    float t = (phase - 0.5) / 0.5;
+    dx = stride / 2 - stride * t; dz = 0;
+  }
+}
+
+// Legs 0, 2, 4 (RF, RR, LM) move together; 1, 3, 5 run half a cycle behind
+float legPhase(int leg, float clock) {
+  return fmod(clock + (leg % 2 ? 0.5 : 0.0), 1.0);
+}`,
+cs:`static partial class Leg {
+    // Phase 0..1 -> (dx, dz) added to the foot's resting spot
+    public static (double dx, double dz) FootOffset(double phase, double stride = 40, double lift = 25) {
+        if (phase < 0.5) {                     // swing: lift and reach forward
+            double t = phase / 0.5;
+            return (-stride / 2 + stride * t, lift * Math.Sin(Math.PI * t));
+        }
+        double u = (phase - 0.5) / 0.5;        // stance: push back along the ground
+        return (stride / 2 - stride * u, 0);
+    }
+
+    // Legs 0, 2, 4 (RF, RR, LM) move together; 1, 3, 5 run half a cycle behind
+    public static double LegPhase(int leg, double clock) => (clock + (leg % 2 == 0 ? 0 : 0.5)) % 1;
+}`,
+rust:`use std::f64::consts::PI;
+
+/// Phase 0..1 -> (dx, dz) added to the foot's resting spot. Try stride 40, lift 25.
+fn foot_offset(phase: f64, stride: f64, lift: f64) -> (f64, f64) {
+    if phase < 0.5 {                    // swing: lift and reach forward
+        let t = phase / 0.5;
+        (-stride / 2.0 + stride * t, lift * (PI * t).sin())
+    } else {                            // stance: push back along the ground
+        let t = (phase - 0.5) / 0.5;
+        (stride / 2.0 - stride * t, 0.0)
+    }
+}
+
+/// Legs 0, 2, 4 (RF, RR, LM) move together; 1, 3, 5 run half a cycle behind
+fn leg_phase(leg: usize, clock: f64) -> f64 {
+    (clock + if leg % 2 == 0 { 0.0 } else { 0.5 }) % 1.0
+}`,
+go:`// FootOffset: phase 0..1 -> dx, dz added to the foot's resting spot. Try stride 40, lift 25.
+func FootOffset(phase, stride, lift float64) (dx, dz float64) {
+	if phase < 0.5 { // swing: lift and reach forward
+		t := phase / 0.5
+		return -stride/2 + stride*t, lift * math.Sin(math.Pi*t)
+	}
+	t := (phase - 0.5) / 0.5 // stance: push back along the ground
+	return stride/2 - stride*t, 0
+}
+
+// LegPhase: legs 0, 2, 4 (RF, RR, LM) move together; 1, 3, 5 run half a cycle behind
+func LegPhase(leg int, clock float64) float64 {
+	if leg%2 == 0 {
+		return math.Mod(clock, 1)
+	}
+	return math.Mod(clock+0.5, 1)
+}`}};
+
+/* ---------- the course: one idea, one task per step ---------- */
+const STEPS=[
+{ch:'Start',kind:'intro',title:'Teach a leg where to step',
+ say:'Vanta has six legs and eighteen motors. Every step it takes starts with one question: which angles put the foot <em>there</em>? This course answers it in short steps. Each one has a single thing for you to try.'},
+
+{ch:'One joint',kind:'do',title:'A joint is just an angle',
+ say:'Here is Vanta\'s femur, pinned at one end. Grab the end and swing it.',
+ task:'Swing the femur onto the dot.',hint:'drag anywhere',
+ init(){this.a=20*R;this.g=[F*Math.cos(130*R),F*Math.sin(130*R)]},
+ view(){centered(F,.5,.62,.4)},
+ drag(p){this.a=Math.atan2(p[1],p[0])},
+ handle(){return [F*Math.cos(this.a),F*Math.sin(this.a)]},
+ check(){return near(this.handle(),this.g,7)},
+ draw(){const t=this.handle();L([-F*1.1,0],[F*1.1,0],K.hair);goal(this.g,this.check());link([0,0],t);joint([0,0]);handle(t);corner([`angle ${deg(this.a)}`])}},
+
+{ch:'One joint',kind:'do',title:'Angle in, point out',
+ say:'The tip\'s position comes straight from the angle: <code>x = L·cos θ</code>, <code>y = L·sin θ</code>. Watch the two dashed lines as you swing.',
+ task:'Point the femur straight up, so x = 0.',hint:'drag anywhere',
+ init(){this.a=30*R},view(){centered(F,.5,.62,.4)},
+ drag(p){this.a=Math.atan2(p[1],p[0])},
+ handle(){return [F*Math.cos(this.a),F*Math.sin(this.a)]},
+ check(){const[x,y]=this.handle();return Math.abs(x)<2&&y>0},
+ draw(){const[x,y]=this.handle();L([-F*1.1,0],[F*1.1,0],K.hair);L([0,-F*.3],[0,F*1.1],K.hair);
+  L([x,y],[x,0],K.gr,1,[4,4]);L([x,y],[0,y],K.gr,1,[4,4]);link([0,0],[x,y]);joint([0,0]);handle([x,y]);
+  Tx(`x ${x.toFixed(1)}`,[x,0],this.check()?K.ok:K.ink,'center',0,18);Tx(`y ${y.toFixed(1)}`,[0,y],K.ink,x>0?'right':'left',x>0?-8:8,4);
+  corner([`θ = ${deg(this.a)}`,`x = ${F} · cos θ = ${x.toFixed(1)}`,`y = ${F} · sin θ = ${y.toFixed(1)}`])}},
+
+{ch:'One joint',kind:'quiz',title:'Quick check',q:`The ${F} mm femur points at 90°. Where is the tip?`,o:[`(${F}, 0)`,`(0, ${F})`,`(54.2, 54.2)`],a:1,why:'cos 90° = 0 and sin 90° = 1, so x = 0 and y = 76.7.'},
+
+{ch:'Two joints',kind:'do',title:'Add the knee',
+ say:'Now the tibia hangs off the end of the femur. Move the knee and the foot comes along for the ride. This is <b>forward kinematics</b>: you choose angles, the foot lands wherever they put it.',
+ task:'Get the foot onto the dot. Drag the knee, then the foot.',hint:'drag a joint',
+ init(){this.t1=60*R;this.t2=-40*R;this.pick='foot';this.g=foot(35*R,-95*R)},
+ view(){centered(F+T,.5,.55)},
+ down(p){this.pick=Math.hypot(...p.map((v,i)=>v-knee(this.t1)[i]))<Math.hypot(...p.map((v,i)=>v-foot(this.t1,this.t2)[i]))?'knee':'foot'},
+ drag(p){if(this.pick==='knee')this.t1=Math.atan2(p[1],p[0]);else{const k=knee(this.t1);this.t2=Math.atan2(p[1]-k[1],p[0]-k[0])-this.t1}},
+ handle(){return this.pick==='knee'?knee(this.t1):foot(this.t1,this.t2)},
+ check(){return near(foot(this.t1,this.t2),this.g,7)},
+ draw(){ring([0,0],F+T);goal(this.g,this.check());const f=twoLink(this.t1,this.t2);handle(this.pick==='knee'?knee(this.t1):f);
+  corner([`hip θ1 = ${deg(this.t1)}`,`knee θ2 = ${deg(this.t2)}`,'dashed ring = full reach'])}},
+
+{ch:'Two joints',kind:'quiz',title:'Quick check',q:'The knee angle θ2 is measured from…',o:['the ground','the femur','the body'],a:1,why:'Each joint is measured from the link before it. That\'s why the tibia\'s angle to the ground is θ1 + θ2.'},
+
+{ch:'Solve it backwards',kind:'do',title:'Drag the foot. The joints figure themselves out.',
+ say:'That last task was fiddly. Real robots work the other way round: decide where the foot goes, then calculate the angles. That\'s <b>inverse kinematics</b>.',
+ task:'Put the foot on all three dots.',hint:'drag the foot',
+ init(){this.p=[110,-90];this.goals=[[120,-60],[50,-125],[150,40]];this.n=0},
+ view(){centered(F+T,.5,.55)},
+ drag(p){this.p=p;if(this.n<3&&near(p,this.goals[this.n],7)&&ik2(...p).ok)this.n++},
+ handle(){return this.p},
+ check(){return this.n>=3},
+ progress(){return `${Math.min(this.n,3)}/3`},
+ draw(){ring([0,0],F+T);this.goals.forEach((g,i)=>{if(i===this.n)goal(g,false);else if(i<this.n)O(g,5,K.ok)});
+  const q=ik2(...this.p);twoLink(q.t1,q.t2);handle(this.p);corner([`θ1 = ${deg(q.t1)}`,`θ2 = ${deg(q.t2)}`])}},
+
+{ch:'Solve it backwards',kind:'do',title:'Some spots are impossible',
+ say:'The femur, the tibia and the line to the foot make a triangle. If the foot is farther than femur + tibia (177.7 mm), no triangle exists and there\'s no answer.',
+ task:'Drag the foot past the dashed ring and watch the math fail.',hint:'drag the foot',
+ init(){this.p=[110,-70];this.seen=false},view(){centered(F+T,.5,.55,.38)},
+ drag(p){this.p=p;if(!ik2(...p).ok&&Math.hypot(...p)>F+T)this.seen=true},
+ handle(){return this.p},check(){return this.seen},
+ draw(){ring([0,0],F+T);const q=ik2(...this.p);L([0,0],this.p,K.gr,1,[4,4]);
+  if(q.ok){twoLink(q.t1,q.t2);}else{const a=Math.atan2(this.p[1],this.p[0]);twoLink(a,0,K.err)}
+  handle(this.p);corner([q.ok?'triangle ok':'no triangle: out of reach',`distance ${q.d.toFixed(1)} mm  (max 177.7)`]);
+  if(!q.ok){ctx.fillStyle=K.err;ctx.font='500 13px "IBM Plex Mono",monospace';ctx.textAlign='left';ctx.fillText('acos() gets a number above 1, so it returns NaN',12,H-14)}}},
+
+{ch:'Solve it backwards',kind:'do',title:'Most spots have two answers',
+ say:'For the same foot position the knee can bend up or down. Hexapods use <b>knee up</b> so the body hangs between the legs.',
+ task:'Flip the knee.',action:'Flip knee',
+ init(){this.p=[120,-70];this.up=true;this.flips=0},view(){centered(F+T,.5,.55)},
+ drag(p){this.p=p},handle(){return this.p},
+ act(){this.up=!this.up;this.flips++},
+ check(){return this.flips>0},
+ draw(){ring([0,0],F+T);const o=ik2(...this.p,!this.up);twoLink(o.t1,o.t2,K.line);const q=ik2(...this.p,this.up);twoLink(q.t1,q.t2);handle(this.p);
+  corner([`knee ${this.up?'up':'down'}`,'grey = the other answer'])}},
+
+{ch:'Solve it backwards',kind:'quiz',title:'Quick check',q:'The foot is 200 mm away. What does acos() return?',o:['0','NaN','180°'],a:1,why:'200 is more than femur + tibia, so the cosine works out above 1, outside what acos accepts. Always check reach first.'},
+
+{ch:'Solve it backwards',kind:'code',title:'That\'s the whole solver',say:'Everything from the last three steps fits in one function. It\'s set up with Vanta\'s numbers already.',code:'ik'},
+
+{ch:'Vanta\'s leg',kind:'do',title:'Seen from above: the coxa',
+ say:'Vanta\'s leg has a third joint at the hip, the coxa. From above it just turns the leg toward the foot: <code>coxa = atan2(y, x)</code>.',
+ task:'Swing the foot onto the dot (top view).',hint:'drag the foot',
+ init(){this.p=[150,-40];this.g=[105,100]},
+ view(){V.s=Math.min(W*.8,H*.9)/(C+F+T)/1.15;V.ox=W*.14;V.oy=H*.55},
+ drag(p){this.p=p},handle(){return this.p},check(){return near(this.p,this.g,8)},
+ draw(){const a=Math.atan2(this.p[1],this.p[0]),c=[C*Math.cos(a),C*Math.sin(a)];
+  ctx.fillStyle=K.hair;const[bx,by]=S(-30,40);ctx.fillRect(bx-40,by,40,80*V.s);
+  L([0,0],[C+F+T,0],K.hair,1,[3,4]);goal(this.g,this.check());link([0,0],c,K.gr);L(c,this.p,K.ink,5);joint([0,0]);handle(this.p);
+  Tx('body',[-30,0],K.gr,'right',-10,4);corner([`coxa = atan2(y, x) = ${deg(a)}`,`TOP VIEW`])}},
+
+{ch:'Vanta\'s leg',kind:'do',title:'Seen from the side: the solver you already know',
+ say:'Once the coxa points at the foot, the femur and tibia work in one flat plane. Measure from the femur joint, which sits 68 mm out: <code>r = √(x² + y²) − 68</code>. Then it\'s the solver from before.',
+ task:'Step the foot onto the dot (side view).',hint:'drag the foot',
+ init(){this.p=[150,-30];this.g=[100,-95]},view(){centered(F+T,.36,.42,.5)},
+ drag(p){this.p=p},handle(){return this.p},check(){return near(this.p,this.g,7)&&ik2(...this.p).ok},
+ draw(){L([-C,0],[0,0],K.gr,7);O([-C,0],5,K.gr);Tx('coxa 68',[-C/2,0],K.gr,'center',0,-12);L([-C,-T*1.1],[F+T,-T*1.1],K.hair);
+  goal(this.g,this.check());const q=ik2(...this.p);twoLink(q.t1,q.t2,q.ok?K.ink:K.err);handle(this.p);
+  corner([`r = ${this.p[0].toFixed(0)}   z = ${this.p[1].toFixed(0)}`,`femur ${deg(q.t1)}   tibia ${deg(q.t2)}`,'SIDE VIEW'])}},
+
+{ch:'Vanta\'s leg',kind:'quiz',title:'Quick check',q:'The foot is at x = 0, y = 100 from the hip. What\'s the coxa angle?',o:['0°','45°','90°'],a:2,why:'atan2(100, 0) = 90°: the leg points straight sideways. atan(100 / 0) would have divided by zero.'},
+
+{ch:'Vanta\'s leg',kind:'code',title:'Three angles from one foot position',say:'Put this under the solver. Give it any foot position and you get all three angles for one of Vanta\'s legs.',code:'leg'},
+
+{ch:'Walk',kind:'do',title:'Walking is the solver on a timer',
+ say:'To walk, each foot target moves in a loop: lift and reach forward, then push back along the ground. Three legs swing while the other three hold Vanta up.',
+ task:'Press Walk.',action:'Walk',
+ init(){this.on=false;this.clock=0},anim:true,view(){V.s=Math.min(W,H)*.46/(mountR+NEUT);V.ox=W/2;V.oy=H/2},
+ act(){this.on=!this.on;this.walked=true;return this.on?'Stop':'Walk'},
+ check(){return !!this.walked},
+ tick(dt){if(this.on)this.clock=(this.clock+dt*.6)%1},
+ draw(){const feet=neutralFeet(),B=([x,y])=>[-y,x];ctx.beginPath();MOUNTS.forEach(([x,y],i)=>{const[sx,sy]=S(...B([x,y]));i?ctx.lineTo(sx,sy):ctx.moveTo(sx,sy)});ctx.closePath();ctx.fillStyle=K.hair;ctx.fill();ctx.strokeStyle=K.ink;ctx.lineWidth=2;ctx.stroke();
+  let down=0;MOUNTS.forEach(([mx,my],i)=>{const[dx,dz]=footOffset(legPhase(i,this.clock),40,25),f=[feet[i][0]+dx,feet[i][1]];L(B([mx,my]),B(f),K.ink,3);joint(B([mx,my]));
+   if(dz>.5)O(B(f),6+dz*.25,K.paper,K.ink,1.5);else{O(B(f),6,K.ink);down++}Tx(LEGN[i],B(f),K.gr,'center',feet[i][1]>0?-18:18,4)});
+  Tx('front',[0,mountR+20],K.gr,'center');corner([`${down} feet on the ground`,'open circle = foot in the air'])}},
+
+{ch:'Walk',kind:'quiz',title:'Quick check',q:'In this tripod gait, how many feet are on the ground at any moment?',o:['2','3','6'],a:1,why:'Two groups of three take turns, so one tripod is always holding the body up.'},
+
+{ch:'Done',kind:'end',title:'You can make a leg go where you want',
+ say:'That\'s the full chain for Vanta: the walking loop picks a foot target, the coxa angle points the leg, and the two-link solver finds the femur and tibia. Below is all of it in one file, in your language.'}
+];
+
+/* ---------- engine ---------- */
+let cur=Math.min(store.get('js-at',0),STEPS.length-1),done=store.get('js-done',{});
+const st=()=>STEPS[cur];
+function size(){const r=cv.getBoundingClientRect(),d=devicePixelRatio||1;W=r.width;H=r.height;cv.width=W*d;cv.height=H*d;ctx.setTransform(d,0,0,d,0,0)}
+function draw(){if(!cv||!W)return;K={ink:tok('--ink'),gr:tok('--graphite'),line:tok('--line'),hair:tok('--hair'),err:tok('--err'),ok:tok('--ok'),paper:tok('--paper')};
+  ctx.clearRect(0,0,W,H);st().view();st().draw()}
+function langPicker(){return `<div class="langs" role="group" aria-label="Language">${LANGS.map(([k,n])=>`<button data-lang="${k}" aria-pressed="${k===lang}">${n}</button>`).join('')}</div>`}
+function codeText(){const s=st();return s.kind==='end'?['ik','leg','gait'].map(k=>CODE[k][lang]).join('\n\n'):CODE[s.code][lang]}
+
+function render(){
+  const s=st(),i=cur;cv=null;
+  $('#where').textContent=`${s.ch} · ${i+1} / ${STEPS.length}`;
+  $('#bar').innerHTML=STEPS.map((_,j)=>`<i class="${j===i?'here':done[j]?'done':''}"></i>`).join('');
+  let h=`<div class="mono">${s.ch}</div><h1>${s.title}</h1>`;
+  if(s.say)h+=`<p class="say">${s.say}</p>`;
+  if(s.kind==='intro')h+=`<div class="stagebox">${RIG_SVG}</div>`;
+  if(s.kind==='do')h+=`<div class="stagebox"><canvas id="sim" tabindex="0" aria-label="${s.task} Arrow keys also move it."></canvas>${s.hint?`<span class="hint mono">${s.hint}</span>`:''}</div>
+    <div class="task" id="task"><span class="mono">Task</span><p>${s.task}</p>${s.progress?`<span class="mono" id="prog">${s.progress()}</span>`:''}${s.action?`<button id="act">${s.action}</button>`:''}</div>`;
+  if(s.kind==='quiz')h+=`<p class="say" style="font-weight:500">${s.q}</p><div class="opts">${s.o.map((o,j)=>`<button data-o="${j}" class="${done[i]&&j===s.a?'right':''}">${o}</button>`).join('')}</div><p class="why" ${done[i]?'':'hidden'}>${s.why}</p>`;
+  if(s.kind==='code'||s.kind==='end')h+=`${langPicker()}<pre><code id="code"></code></pre><div style="display:flex;justify-content:flex-end"><button id="copy">Copy code</button></div>`;
+  if(s.kind==='end')h+=`<ol class="recap"><li>A joint angle and a length give a point.</li><li>Forward: angles in, foot out.</li><li>Inverse: foot in, angles out, using one triangle.</li><li>The coxa turns the leg toward the foot first.</li><li>Walking moves each foot target around a loop.</li></ol>`;
+  $('#step').innerHTML=h;
+  if($('#code'))$('#code').textContent=codeText();
+  if(s.kind==='do'){if(!s.ready){s.init();s.ready=true}cv=$('#sim');ctx=cv.getContext('2d');size();bindCanvas();draw()}
+  if(s.kind==='intro')startRig();
+  $('#back').style.visibility=i?'visible':'hidden';
+  updateNext();store.set('js-at',cur);
+}
+function complete(){return st().kind==='intro'||st().kind==='code'||st().kind==='end'||!!done[cur]}
+function updateNext(){const n=$('#next'),ok=complete(),last=cur===STEPS.length-1;
+  n.hidden=last;n.textContent=cur===0?'Start →':ok?'Next →':'Skip →';n.classList.toggle('skip',!ok);
+  const t=$('#task');if(t){t.classList.toggle('ok',ok);t.querySelector('.mono').textContent=ok?'Done':'Task'}}
+function markDone(){if(done[cur])return;done[cur]=true;store.set('js-done',done);$('#bar').children[cur].className='here';updateNext();
+  if(window.anime&&!reduce){anime({targets:'#task',translateX:[0,6,-4,0],duration:420,easing:'easeOutQuad'});anime({targets:'#next',scale:[1,1.08,1],duration:500,easing:'easeOutBack'})}}
+function after(){const s=st();if($('#prog'))$('#prog').textContent=s.progress();if(!done[cur]&&s.check())markDone();draw()}
+
+function bindCanvas(){
+  const s=st(),w=e=>{const r=cv.getBoundingClientRect();return [(e.clientX-r.left-V.ox)/V.s,-(e.clientY-r.top-V.oy)/V.s]};
+  cv.onpointerdown=e=>{if(!s.drag)return;cv.setPointerCapture(e.pointerId);s.down?.(w(e));s.drag(w(e));after()};
+  cv.onpointermove=e=>{if(!s.drag||!(e.buttons&1))return;s.drag(w(e));after()};
+  cv.onkeydown=e=>{const d={ArrowLeft:[-3,0],ArrowRight:[3,0],ArrowUp:[0,3],ArrowDown:[0,-3]}[e.key];if(!d||!s.drag)return;e.preventDefault();const p=s.handle();s.drag([p[0]+d[0],p[1]+d[1]]);after()};
+}
+function go(i){cur=Math.max(0,Math.min(STEPS.length-1,i));render();scrollTo({top:0,behavior:reduce?'auto':'smooth'});
+  if(window.anime&&!reduce)anime({targets:'#step',opacity:[0,1],translateY:[10,0],duration:380,easing:'easeOutQuad'})}
+
+document.addEventListener('click',e=>{
+  const t=e.target;
+  if(t.id==='next')return go(cur+1);
+  if(t.id==='back')return go(cur-1);
+  if(t.id==='act'){const r=st().act();if(typeof r==='string')t.textContent=r;after();return}
+  const o=t.closest('[data-o]');if(o){const s=st(),j=+o.dataset.o;if(j===s.a){o.className='right';$('.why').hidden=false;markDone()}else o.className='wrong';return}
+  const l=t.closest('[data-lang]');if(l){lang=l.dataset.lang;store.set('js-lang',lang);document.querySelectorAll('[data-lang]').forEach(b=>b.setAttribute('aria-pressed',b.dataset.lang===lang));$('#code').textContent=codeText();return}
+  if(t.id==='copy'){navigator.clipboard?.writeText(codeText()).then(()=>t.textContent='Copied',()=>{getSelection().selectAllChildren($('#code'));t.textContent='Selected, press Ctrl+C'}).finally(()=>setTimeout(()=>t.textContent='Copy code',1600));return}
+  if(t.id==='wipe'){try{['js-at','js-done','js-lang'].forEach(k=>localStorage.removeItem(k))}catch{}done={};STEPS.forEach(s=>s.ready=false);go(0)}
+});
+new ResizeObserver(()=>{if(cv){size();draw()}}).observe($('#step'));
+matchMedia('(prefers-color-scheme: dark)').addEventListener('change',draw);
+
+/* ---------- intro: Vanta walking in 3D inside a turning reference cube ---------- */
+const RIG_SVG=`<svg id="rig" viewBox="0 0 600 440" role="img" aria-label="Wireframe Vanta walking inside a slowly turning cube, circled by two orbits">
+<ellipse class="orb" cx="300" cy="220" rx="270" ry="80" transform="rotate(-14 300 220)" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<ellipse class="orb" cx="300" cy="220" rx="200" ry="150" transform="rotate(58 300 220)" fill="none" stroke="currentColor" stroke-width="1.2"/>
+<path id="cube" fill="none" stroke="currentColor" stroke-width="1.4"/>
+<path id="shadow" fill="none" stroke="currentColor" stroke-width=".8" opacity=".4"/>
+<path id="bot" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/>
+<path id="botBody" fill="currentColor" fill-opacity=".1" stroke="currentColor" stroke-width="2"/>
+<circle class="odot" r="6" fill="currentColor"/><circle class="odot" r="6" fill="currentColor"/></svg>`;
+const CV=[];for(const x of[-1,1])for(const y of[-1,1])for(const z of[-1,1])CV.push([x,y,z]);
+const CE=[];for(let i=0;i<8;i++)for(let j=i+1;j<8;j++)if(CV[i].filter((v,k)=>v!==CV[j][k]).length===1)CE.push([i,j]);
+let ay=.7,clock=0,rigOn=false,rigLast=0;
+function P([x,y,z]){const ax=-.38;let X=x*Math.cos(ay)+z*Math.sin(ay),Z=-x*Math.sin(ay)+z*Math.cos(ay),Y=y*Math.cos(ax)-Z*Math.sin(ax);Z=y*Math.sin(ax)+Z*Math.cos(ax);const k=4/(4+Z);return [300+X*125*k,225-Y*125*k]}
+const seg=(a,b)=>`M${a[0].toFixed(1)} ${a[1].toFixed(1)}L${b[0].toFixed(1)} ${b[1].toFixed(1)}`;
+function renderRig(){
+  const cube=$('#cube');if(!cube)return false;
+  const p=CV.map(P);cube.setAttribute('d',CE.map(([i,j])=>seg(p[i],p[j])).join(''));
+  const s=1.15/(mountR+NEUT),h=55,feet=neutralFeet(),M3=(x,y,z)=>P([-y*s,(z+h)*s-.95,x*s]);let legs='',body=[],sh='';
+  MOUNTS.forEach(([mx,my,ma],i)=>{const[dx,dz]=footOffset(legPhase(i,clock),40,26),[lx,ly]=rot(feet[i][0]+dx-mx,feet[i][1]-my,-ma),q=legIK(lx,ly,-h+dz),c1=ma+q.t1;
+    const j1=[mx+C*Math.cos(c1),my+C*Math.sin(c1)],kr=F*Math.cos(q.t2),kz=F*Math.sin(q.t2),fr=kr+T*Math.cos(q.t2+q.t3),fz=kz+T*Math.sin(q.t2+q.t3);
+    const kn=[j1[0]+kr*Math.cos(c1),j1[1]+kr*Math.sin(c1),kz],ft=[j1[0]+fr*Math.cos(c1),j1[1]+fr*Math.sin(c1),fz];
+    legs+=seg(M3(mx,my,0),M3(...j1,0))+seg(M3(...j1,0),M3(...kn))+seg(M3(...kn),M3(...ft));body.push(M3(mx,my,0));const g=M3(ft[0],ft[1],-h);sh+=`M${(g[0]-5).toFixed(1)} ${g[1].toFixed(1)}h10`});
+  $('#bot').setAttribute('d',legs);$('#botBody').setAttribute('d','M'+body.map(q=>q[0].toFixed(1)+' '+q[1].toFixed(1)).join('L')+'Z');$('#shadow').setAttribute('d',sh);
+  document.querySelectorAll('.odot').forEach((d,i)=>{const[rx,ry,r]=[[270,80,-14],[200,150,58]][i],u=clock*Math.PI*2*(i?-1:1),a=r*R;
+    d.setAttribute('cx',300+rx*Math.cos(u)*Math.cos(a)-ry*Math.sin(u)*Math.sin(a));d.setAttribute('cy',220+rx*Math.cos(u)*Math.sin(a)+ry*Math.sin(u)*Math.cos(a))});
+  return true;
+}
+function startRig(){
+  renderRig();rigOn=false;
+  if(!window.anime||reduce){rigOn=true;return}
+  const strokes=[...document.querySelectorAll('.orb,#cube,#bot')];strokes.forEach(s=>{const l=s.getTotalLength();s.style.strokeDasharray=l;s.style.strokeDashoffset=l});
+  anime.set('#botBody,#shadow',{opacity:0});anime.set('.odot',{r:0});
+  anime.timeline({easing:'easeOutExpo'})
+    .add({targets:'.orb',strokeDashoffset:0,duration:1400,delay:anime.stagger(160)})
+    .add({targets:'#cube',strokeDashoffset:0,duration:1100},'-=1100')
+    .add({targets:'#bot',strokeDashoffset:0,duration:1000,easing:'easeInOutQuad'},'-=500')
+    .add({targets:'#botBody,#shadow',opacity:[0,1],duration:400},'-=300')
+    .add({targets:'.odot',r:[0,6],duration:500,delay:anime.stagger(100)},'-=400')
+    .finished.then(()=>{strokes.forEach(s=>{s.style.strokeDasharray='';s.style.strokeDashoffset=''});rigOn=true});
+}
+function loop(t){const dt=Math.min(.05,(t-rigLast)/1000||0);rigLast=t;const s=st();
+  if(s.kind==='intro'&&rigOn&&!reduce){ay+=dt*.25;clock=(clock+dt*.55)%1;renderRig()}
+  if(s.anim&&s.ready&&cv){s.tick(dt);draw()}
+  requestAnimationFrame(loop)}
+
+if(window.anime&&!reduce)anime({targets:'#logo',rotate:[-90,0],opacity:[0,1],duration:900,easing:'easeOutBack'});
+render();requestAnimationFrame(loop);
+</script>
+
+</body></html>
